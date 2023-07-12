@@ -10,7 +10,6 @@ import {
 } from '@nestjs/common';
 import { AppService } from './app.service';
 import { data, ReportType } from 'src/data';
-import { v4 as uuid } from 'uuid';
 
 @Controller('report/:type')
 export class AppController {
@@ -21,17 +20,15 @@ export class AppController {
     console.log(type);
     const reportType =
       type === 'income' ? ReportType.INCOME : ReportType.EXPENSE;
-    return data.report.filter((report) => report.type === reportType);
+    return this.appService.getAllReports(reportType);
   }
 
   @Get(':id')
-  getIncomeReportById(@Param('type') type: string, @Param('id') id: string) {
+  getReportById(@Param('type') type: string, @Param('id') id: string) {
     console.log({ type, id });
     const reportType =
       type === 'income' ? ReportType.INCOME : ReportType.EXPENSE;
-    return data.report
-      .filter((report) => report.type === reportType)
-      .find((report) => report.id === id);
+    return this.appService.getReportById(reportType, id);
   }
 
   @Post()
@@ -39,17 +36,9 @@ export class AppController {
     @Body() { amount, source }: { amount: number; source: string },
     @Param('type') type: string,
   ) {
-    const newReport = {
-      id: uuid(),
-      source,
-      amount,
-      created_at: new Date(),
-      updated_at: new Date(),
-      type: type === 'income' ? ReportType.INCOME : ReportType.EXPENSE,
-    };
-
-    data.report.push(newReport);
-    return newReport;
+    const reportType =
+      type === 'income' ? ReportType.INCOME : ReportType.EXPENSE;
+    return this.appService.createReport(reportType, { amount, source });
   }
 
   @Put(':id')
@@ -61,32 +50,12 @@ export class AppController {
     const reportType =
       type === 'income' ? ReportType.INCOME : ReportType.EXPENSE;
 
-    const reportToUpdate = data.report
-      .filter((report) => report.type === reportType)
-      .find((report) => report.id === id);
-
-    if (!reportToUpdate) return;
-
-    const reportIndex = data.report.findIndex(
-      (report) => report.id === reportToUpdate.id,
-    );
-
-    data.report[reportIndex] = {
-      ...data.report[reportIndex],
-      ...body,
-    };
-
-    return data.report[reportIndex];
+    return this.appService.updateReport(reportType, id, body);
   }
 
   @HttpCode(204)
   @Delete(':id')
   deleteReportById(@Param('id') id: string, @Param('type') type: string) {
-    const reportIndex = data.report.findIndex((report) => report.id === id);
-
-    if (reportIndex === -1) return;
-
-    data.report.splice(reportIndex, 1);
-    return;
+    return this.appService.deleteReportById(id);
   }
 }
